@@ -470,15 +470,6 @@ function getCurrentWeekStartKey(){
   return `${monday.getFullYear()}-${String(monday.getMonth()+1).padStart(2,"0")}-${String(monday.getDate()).padStart(2,"0")}`;
 }
 
-// Automatically start a fresh timetable when a new week begins.
-const currentWeekKey = getCurrentWeekStartKey();
-const savedWeekKey = localStorage.getItem(WEEK_STORAGE);
-if(savedWeekKey !== currentWeekKey){
-  data = {};
-  localStorage.setItem(STORAGE, JSON.stringify(data));
-  localStorage.setItem(WEEK_STORAGE, currentWeekKey);
-}
-
 // Open the timetable on the current day automatically.
 // Monday=0 ... Sunday=6.
 let currentDay = (new Date().getDay() + 6) % 7;
@@ -708,6 +699,18 @@ function archivePreviousWeekIfNeeded(previousWeekKey){
   localStorage.setItem(HISTORY_STORAGE, JSON.stringify(historyData)); window.dispatchEvent(new CustomEvent("timetable-history-save"));
 }
 
+// Automatically archive the previous week, then start a fresh timetable
+// when a new week begins. The archive step MUST run before data/WEEK_STORAGE
+// are reset, otherwise the previous week's progress is lost instead of saved.
+const currentWeekKey = getCurrentWeekStartKey();
+const savedWeekKey = localStorage.getItem(WEEK_STORAGE);
+if(savedWeekKey !== currentWeekKey){
+  if(savedWeekKey) archivePreviousWeekIfNeeded(savedWeekKey);
+  data = {};
+  localStorage.setItem(STORAGE, JSON.stringify(data));
+  localStorage.setItem(WEEK_STORAGE, currentWeekKey);
+}
+
 function currentMonthKeyFromWeek(weekKey){
   return weekKey.slice(0,7);
 }
@@ -860,14 +863,6 @@ function closeHistory(){
 
 document.getElementById("historyBtn").onclick = openHistory;
 document.getElementById("historyBack").onclick = closeHistory;
-
-// Archive the old week before the existing auto-reset clears it.
-const historyWeekKey = getCurrentWeekStartKey();
-const historySavedWeekKey = localStorage.getItem(WEEK_STORAGE);
-if(historySavedWeekKey && historySavedWeekKey !== historyWeekKey){
-  archivePreviousWeekIfNeeded(historySavedWeekKey);
-  localStorage.setItem(HISTORY_STORAGE, JSON.stringify(historyData)); window.dispatchEvent(new CustomEvent("timetable-history-save"));
-}
 
 // Google/Firebase account handlers are attached by the Firebase module below.
 // ---------------- LOCAL PROFILE (NO GOOGLE LOGIN) ----------------
